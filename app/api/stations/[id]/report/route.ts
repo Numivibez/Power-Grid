@@ -25,7 +25,8 @@
 //   the report is for.
 // =============================================================
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { getSampleStations } from '@/lib/supabase/sample-data';
 import type { ReportStatus } from '@/types/station';
 
 // All valid status values — used for input validation below
@@ -81,6 +82,26 @@ export async function POST(
         { status: 400 }
       );
     }
+  }
+
+  // No Supabase credentials yet → accept the report against sample
+  // data and echo it back, but nothing is saved.
+  if (!isSupabaseConfigured) {
+    if (!getSampleStations().some((s) => s.id === stationId)) {
+      return Response.json({ error: `Station with id "${stationId}" not found` }, { status: 404 });
+    }
+    return Response.json(
+      {
+        id: `sample-report-${Date.now()}`,
+        station_id: stationId,
+        status,
+        queue_minutes: queue_minutes ?? null,
+        reporter_id: reporter_id ?? 'anonymous',
+        reported_at: new Date().toISOString(),
+        sample: true,
+      },
+      { status: 201, headers: { 'X-Data-Source': 'sample' } }
+    );
   }
 
   const supabase = createServerSupabaseClient();

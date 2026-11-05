@@ -48,6 +48,7 @@ export default function HomePage() {
   const [activeStationId, setActiveStationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isSampleData, setIsSampleData] = useState(false)
 
   // ── FILTER STATES ──────────────────────────────────────────
   const [selectedState, setSelectedState] = useState<string>('all')
@@ -64,6 +65,7 @@ export default function HomePage() {
         if (!res.ok) throw new Error(`API error: ${res.status}`)
         const data: StationWithLatestReport[] = await res.json()
         setStations(data)
+        setIsSampleData(res.headers.get('X-Data-Source') === 'sample')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load stations')
       } finally {
@@ -234,6 +236,16 @@ export default function HomePage() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="h-24 rounded-xl bg-zinc-800 animate-pulse" />
                 ))}
+              </div>
+            )}
+
+            {isSampleData && !error && (
+              <div className="flex items-start gap-2 p-3 mt-2 rounded-xl bg-amber-950 border border-amber-800 text-amber-300 text-xs">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Showing sample data</p>
+                  <p className="text-amber-400 mt-0.5">Supabase isn&apos;t connected yet, so these stations and reports are examples.</p>
+                </div>
               </div>
             )}
 

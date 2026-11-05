@@ -17,12 +17,28 @@
 //   Supabase: "also fetch related rows from station_reports".
 // =============================================================
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { connection } from 'next/server';
+import { createServerSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { getSampleStations } from '@/lib/supabase/sample-data';
 import { parsePostGisLocation } from '@/lib/supabase/utils';
 import type { StationWithLatestReport } from '@/types/station';
 
 
 export async function GET() {
+  // Station data is live, so this must run at request time — never
+  // prerendered at build time. With Cache Components enabled,
+  // awaiting connection() is how a GET Route Handler opts into
+  // request-time rendering (`dynamic = 'force-dynamic'` is not
+  // supported in this mode).
+  await connection();
+
+  // No Supabase credentials yet → serve labelled sample data.
+  if (!isSupabaseConfigured) {
+    return Response.json(getSampleStations(), {
+      headers: { 'X-Data-Source': 'sample' },
+    });
+  }
+
   // Create a fresh server-side Supabase client for this request
   const supabase = createServerSupabaseClient();
 

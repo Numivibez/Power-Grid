@@ -19,7 +19,8 @@
 //   rows are touched.
 // =============================================================
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { distanceMetres, getSampleStations } from '@/lib/supabase/sample-data';
 import { parsePostGisLocation } from '@/lib/supabase/utils';
 import type { StationWithLatestReport } from '@/types/station';
 
@@ -41,6 +42,16 @@ export async function GET(request: Request) {
       { error: 'Missing or invalid lat/lng query parameters' },
       { status: 400 } // 400 Bad Request
     );
+  }
+
+  // No Supabase credentials yet → filter the sample data by distance.
+  if (!isSupabaseConfigured) {
+    const nearby = getSampleStations()
+      .map((s) => ({ s, d: distanceMetres(lat, lng, s.location.coordinates[1], s.location.coordinates[0]) }))
+      .filter(({ d }) => d <= radius)
+      .sort((a, b) => a.d - b.d)
+      .map(({ s }) => s);
+    return Response.json(nearby, { headers: { 'X-Data-Source': 'sample' } });
   }
 
   const supabase = createServerSupabaseClient();
