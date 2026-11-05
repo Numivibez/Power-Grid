@@ -14,9 +14,10 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Radio, AlertCircle, Search, Filter, Fuel, Zap } from 'lucide-react'
+import { MapPin, Radio, AlertCircle, Search, Filter, Fuel, Zap, PlusCircle } from 'lucide-react'
 import StationCard from '@/components/StationCard'
-import type { StationWithLatestReport, StationType } from '@/types/station'
+import ReportModal from '@/components/ReportModal'
+import type { StationWithLatestReport, StationType, ReportStatus } from '@/types/station'
 
 // GPS centers for each state to animate the map when switching regions
 const STATE_CENTERS: Record<string, [number, number]> = {
@@ -53,6 +54,37 @@ export default function HomePage() {
   const [selectedState, setSelectedState] = useState<string>('all')
   const [selectedType, setSelectedType] = useState<'all' | StationType>('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // ── REPORT MODAL STATE ─────────────────────────────────────
+  const [reportingStation, setReportingStation] = useState<StationWithLatestReport | null>(null)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+
+  // Optimistic UI update: instantly update station status without re-fetching
+  function handleReportSubmitted(
+    stationId: string,
+    newReport: {
+      status: ReportStatus
+      queue_minutes: number | null
+      reported_at: string
+    }
+  ) {
+    setStations((prev) =>
+      prev.map((s) => {
+        if (s.id !== stationId) return s
+        return {
+          ...s,
+          latest_report: {
+            id: 'temp-' + Date.now(),
+            station_id: stationId,
+            status: newReport.status,
+            queue_minutes: newReport.queue_minutes,
+            reporter_id: 'current-user',
+            reported_at: newReport.reported_at,
+          },
+        }
+      })
+    )
+  }
 
   const cardListRef = useRef<HTMLDivElement>(null)
 
@@ -128,13 +160,31 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Live indicator */}
-        <div className="flex items-center gap-2 text-xs text-zinc-400">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-          </span>
-          <span className="font-medium text-zinc-300">Live Network</span>
+        {/* Header Actions */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const target = stations.find((s) => s.id === activeStationId) || filteredStations[0] || stations[0]
+              if (target) {
+                setReportingStation(target)
+                setIsReportModalOpen(true)
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all min-h-[44px]"
+          >
+            <PlusCircle size={15} />
+            <span>Update Queue</span>
+          </button>
+
+          {/* Live indicator */}
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+            </span>
+            <span className="font-medium text-zinc-300 hidden sm:inline">Live Network</span>
+          </div>
         </div>
       </header>
 
@@ -253,6 +303,10 @@ export default function HomePage() {
                   station={station}
                   isActive={activeStationId === station.id}
                   onClick={() => setActiveStationId(station.id)}
+                  onReportClick={(s) => {
+                    setReportingStation(s)
+                    setIsReportModalOpen(true)
+                  }}
                 />
               </div>
             ))}
@@ -279,6 +333,14 @@ export default function HomePage() {
           />
         </main>
       </div>
+
+      {/* ── REPORT MODAL ── */}
+      <ReportModal
+        station={reportingStation}
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onReportSubmitted={handleReportSubmitted}
+      />
     </div>
   )
 }

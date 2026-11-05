@@ -17,14 +17,21 @@
 //   Supabase: "also fetch related rows from station_reports".
 // =============================================================
 
+import { connection } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { parsePostGisLocation } from '@/lib/supabase/utils';
+import { FALLBACK_STATIONS } from '@/lib/fallback-data';
 import type { StationWithLatestReport } from '@/types/station';
 
-
 export async function GET() {
-  // Create a fresh server-side Supabase client for this request
+  // connection() tells Next.js 16 to run dynamically on request
+  // preventing build-time static errors in CI/CD without env vars
+  await connection();
+
   const supabase = createServerSupabaseClient();
+  if (!supabase) {
+    return Response.json(FALLBACK_STATIONS);
+  }
 
   // ── QUERY ──────────────────────────────────────────────────
   // .from('stations')          → target the stations table

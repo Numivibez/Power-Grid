@@ -19,12 +19,14 @@
 //   rows are touched.
 // =============================================================
 
+import { connection } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { parsePostGisLocation } from '@/lib/supabase/utils';
+import { FALLBACK_STATIONS } from '@/lib/fallback-data';
 import type { StationWithLatestReport } from '@/types/station';
 
-
 export async function GET(request: Request) {
+  await connection();
   // ── PARSE QUERY PARAMETERS ─────────────────────────────────
   // request.url gives us the full URL including ?lat=...&lng=...
   // URL() is a standard browser/Node API for parsing URLs.
@@ -44,6 +46,9 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServerSupabaseClient();
+  if (!supabase) {
+    return Response.json(FALLBACK_STATIONS);
+  }
 
   // ── GEOSPATIAL QUERY VIA RPC ───────────────────────────────
   // .rpc('nearby_stations', { ... }) calls a PostgreSQL function

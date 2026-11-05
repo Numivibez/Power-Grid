@@ -84,6 +84,19 @@ export async function POST(
   }
 
   const supabase = createServerSupabaseClient();
+  if (!supabase) {
+    return Response.json(
+      {
+        id: 'mock-' + Date.now(),
+        station_id: stationId,
+        status,
+        queue_minutes: queue_minutes ?? null,
+        reporter_id: reporter_id ?? 'anonymous',
+        reported_at: new Date().toISOString(),
+      },
+      { status: 201 }
+    );
+  }
 
   // ── VERIFY THE STATION EXISTS ──────────────────────────────
   // Before inserting a report, confirm the station ID is real.

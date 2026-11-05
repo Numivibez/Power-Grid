@@ -26,9 +26,10 @@ interface StationCardProps {
   station: StationWithLatestReport
   isActive: boolean          // Highlighted when map marker is selected
   onClick: () => void        // Scroll map to this station
+  onReportClick?: (station: StationWithLatestReport) => void // Open status report dialog
 }
 
-export default function StationCard({ station, isActive, onClick }: StationCardProps) {
+export default function StationCard({ station, isActive, onClick, onReportClick }: StationCardProps) {
   const { name, type, city, state, address, latest_report } = station
 
   return (
@@ -80,17 +81,29 @@ export default function StationCard({ station, isActive, onClick }: StationCardP
         </div>
       </div>
 
-      {/* ── BOTTOM ROW: Status badge + queue time ── */}
-      <div className="flex items-center justify-between gap-2">
-        {/* StatusBadge component we just built */}
-        <StatusBadge status={latest_report?.status ?? null} />
+      {/* ── BOTTOM ROW: Status badge + queue time + Update action ── */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-800/60 mt-0.5">
+        <div className="flex items-center gap-2">
+          <StatusBadge status={latest_report?.status ?? null} />
+          {latest_report?.queue_minutes != null && (
+            <span className="flex items-center gap-1 text-xs text-zinc-400">
+              <Clock size={11} />
+              ~{latest_report.queue_minutes}m
+            </span>
+          )}
+        </div>
 
-        {/* Queue time — only show if we have a report with minutes */}
-        {latest_report?.queue_minutes != null && (
-          <span className="flex items-center gap-1 text-xs text-zinc-400">
-            <Clock size={11} />
-            ~{latest_report.queue_minutes} min
-          </span>
+        {onReportClick && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onReportClick(station)
+            }}
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-zinc-800 hover:bg-blue-600 hover:text-white text-blue-400 border border-zinc-700 transition-colors"
+          >
+            Update
+          </button>
         )}
       </div>
 
