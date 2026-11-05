@@ -21,8 +21,8 @@ import { createClient } from '@supabase/supabase-js';
 //
 // They are stored in .env.local (never committed to git).
 // NEXT_PUBLIC_ prefix = Next.js will include them in the browser bundle.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // The `!` at the end tells TypeScript "trust me, this won't be undefined".
 // If you forget to set these in .env.local, you'll get a runtime error
@@ -31,4 +31,7 @@ const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || pro
 // createClient() sets up the connection to Supabase.
 // We export it as a named export so components import it like:
 //   import { supabase } from '@/lib/supabase/client'
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// It is null when the env vars aren't set, so importing this file
+// never crashes the build — check for null before using it.
+export const supabase =
+  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;

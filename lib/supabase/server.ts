@@ -24,13 +24,23 @@ import { createClient } from '@supabase/supabase-js';
 // On the server we can use the same anon key — the difference is
 // that server Route Handlers run with full Node.js access and
 // never expose these values to the browser.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// True when both Supabase env vars are set. When false, the API
+// routes fall back to sample data (see ./sample-data.ts) instead
+// of crashing, so the app still builds and runs.
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 // We export a *function* (not a singleton) so each server request
 // gets a fresh client. This matters for future auth where each
 // request may have a different user session via cookies.
 export function createServerSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+    );
+  }
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       // On the server we don't want Supabase to try to persist
